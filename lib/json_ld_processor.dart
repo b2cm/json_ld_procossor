@@ -1,6 +1,6 @@
-/// Support for doing something awesome.
+/// Json-LD Processor with normalization (URDNA2015) support.
 ///
-/// More dartdocs go here.
+/// Main way to use the library is with the class [JsonLdProcessor] and ist static methods.
 library json_ld_processor;
 
 export 'src/json_ld_processor_base.dart';

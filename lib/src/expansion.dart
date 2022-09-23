@@ -82,13 +82,11 @@ Future<dynamic> expandDoc(
   //10)
   var typeScopedContext = activeContext;
   //11)
-  String? typeKey;
   String? inputType;
   for (var entry in element.entries) {
     var expandedKey = await expandIri(
         activeContext: activeContext, value: entry.key, vocab: true);
     if (expandedKey == '@type') {
-      typeKey = entry.key;
       var value = entry.value;
       if (entry.value is! List) {
         value = [value];

@@ -63,6 +63,13 @@ class Context {
       return false;
     }
   }
+
+  @override
+  int get hashCode =>
+      baseIri.hashCode +
+      originalBaseIri.hashCode +
+      defaultBaseDirection.hashCode +
+      defaultLanguage.hashCode;
 }
 
 class ContextTermDefinition {
@@ -108,6 +115,10 @@ class ContextTermDefinition {
       return false;
     }
   }
+
+  @override
+  int get hashCode =>
+      iriMapping.hashCode + prefixFlag.hashCode + baseUrl.hashCode;
 }
 
 Future<Context> processContext(
@@ -370,8 +381,6 @@ Future<Context> processContext(
     //5.13
     var keys = contextItem.keys.toList();
     for (var key in keys) {
-      var value = contextItem[key];
-
       List<String> forbidden = [
         '@base',
         '@direction',
@@ -755,8 +764,7 @@ Future<void> createTermDefinition(
               context is Map ? Map<String, dynamic>.from(context) : context,
           baseUrl: baseUrl ?? Uri(),
           overwriteProtected: true,
-          remoteContexts:
-              remoteContexts != null ? List.from(remoteContexts) : null,
+          remoteContexts: List.from(remoteContexts),
           validateScopedContext: false);
     } catch (e) {
       throw JsonLdError('invalid scoped context');

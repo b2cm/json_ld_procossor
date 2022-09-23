@@ -2,20 +2,26 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart';
-import 'package:json_ld_processor/src/context_processing.dart';
-import 'package:json_ld_processor/src/expansion.dart';
-import 'package:json_ld_processor/src/flatten.dart';
-import 'package:json_ld_processor/src/normalize.dart';
-import 'package:json_ld_processor/src/to_rdf.dart';
 
+import 'context_processing.dart';
+import 'expansion.dart';
+import 'flatten.dart';
+import 'normalize.dart';
+import 'to_rdf.dart';
+
+/// Json-LD Processor conform to [JsonLdProcessor-Interface](https://www.w3.org/TR/json-ld11-api/#the-jsonldprocessor-interface)
 class JsonLdProcessor {
-  // input: Map<String, dynamic>, List<Map>, String, RemoteDocument
-  //context: Map<String, dynamic>, List<Map or String>, String
+  /// **Not Implemented yet:** Compact a json Document [input] using [context] and [options].
   static FutureOr<Map<String, dynamic>> compact(dynamic input,
       {dynamic context, JsonLdOptions? options}) {
     throw UnimplementedError();
   }
 
+  /// Expand a json Document [input] using [options].
+  ///
+  /// [input] is allowed to be a [RemoteDocument], a Map<String, dynamic> (json-object) or String (URL to json object -> loading not implemented yet)
+  ///
+  /// A json-encoded String is returned.
   static FutureOr<String> expand(dynamic input,
       {JsonLdOptions? options}) async {
     options ??= JsonLdOptions();
@@ -97,6 +103,12 @@ class JsonLdProcessor {
     return jsonEncode(expandedValue);
   }
 
+  /// Flattens a json Document [input] using [options].
+  ///
+  /// [input] is allowed to be a [RemoteDocument], a Map<String, dynamic> (json-object) or String (URL to json object -> loading not implemented yet)
+  /// If [context] is given, the result is compacted using this context -> Not implemented yet
+  ///
+  /// A json-encoded String is returned.
   static FutureOr<String> flatten(dynamic input,
       {dynamic context, JsonLdOptions? options}) async {
     options ??= JsonLdOptions();
@@ -126,8 +138,7 @@ class JsonLdProcessor {
             useNativeTypes: options.useNativeTypes,
             useRdfType: options.useRdfType,
             safeMode: options.safeMode));
-    //5
-    Map identifierMap = {};
+    //5 Why? It is not used
     //6
     var flattenedOutput = flattenDoc(
         element: jsonDecode(expandedInput), ordered: options.ordered);
@@ -139,11 +150,17 @@ class JsonLdProcessor {
     return jsonEncode(flattenedOutput);
   }
 
+  /// **Not implemented yet**: Transform a RdfDataset [input] to a json-ld document using [options]
   static FutureOr<Map<String, dynamic>> fromRdf(RdfDataset input,
       {JsonLdOptions? options}) {
     throw UnimplementedError();
   }
 
+  /// Transforms a json Document [input] to a [RdfDataset] using [options].
+  ///
+  /// [input] is allowed to be a RemoteDocument, a Map<String, dynamic> (json-object) or String (URL to json object -> loading not implemented yet)
+  ///
+  /// A RdfDataset is returned.
   static FutureOr<RdfDataset> toRdf(dynamic input,
       {JsonLdOptions? options}) async {
     options ??= JsonLdOptions();
@@ -178,7 +195,11 @@ class JsonLdProcessor {
     return dataset;
   }
 
-  //input: RDFDataset, Map, String(= Url), RemoteDocument
+  /// Normalizes a [RdfDataset] or json-ld document [input] using URDNA2015 and [options].
+  ///
+  /// [input] is allowed to be a [RdfDataset], a [RemoteDocument], a [Map<String, dynamic>] (json-object) or a String (url to location of a json-ld document).
+  ///
+  /// A n-quad formatted normalized String is returned.
   static FutureOr<String> normalize(dynamic input,
       {JsonLdOptions? options}) async {
     options ??= JsonLdOptions();
@@ -190,6 +211,7 @@ class JsonLdProcessor {
   }
 }
 
+/// A Document (most times json-document) loaded from an URL [as defined within the JSON-LD API](https://www.w3.org/TR/json-ld11-api/#remotedocument)
 class RemoteDocument {
   final String _contentType;
   final Uri _contextUrl;
@@ -217,6 +239,7 @@ class RemoteDocument {
   String get contentType => _contentType;
 }
 
+/// Options used for nearly all Functions of a JSON-LD Processor. Specified [here](https://www.w3.org/TR/json-ld11-api/#the-jsonldoptions-type)
 class JsonLdOptions {
   final Uri? _base;
   final bool _compactArrays;
@@ -293,6 +316,9 @@ class JsonLdOptions {
   bool get safeMode => _safeMode;
 }
 
+/// Function to load a Document from an URL.
+///
+/// Returns a RemoteDocument.
 Future<RemoteDocument> loadDocument(
     Uri url, LoadDocumentOptions? options) async {
   var response =
@@ -326,6 +352,7 @@ Future<RemoteDocument> loadDocument(
   return RemoteDocument(document: jsonDecode(response.body));
 }
 
+/// Options for loading document from an URL. Specified [here](https://www.w3.org/TR/json-ld11-api/#loaddocumentoptions).
 class LoadDocumentOptions {
   final bool _extractAllScripts;
   final String? _profile;
@@ -355,6 +382,7 @@ class JsonLdError implements Exception {
   }
 }
 
+/// A RdfDataset as defined within the [JSON-LD Processing API](https://www.w3.org/TR/json-ld11-api/#rdf-dataset-interfaces).
 class RdfDataset {
   final RdfGraph _defaultGraph;
   late Map<String, RdfGraph> graphs;
@@ -363,6 +391,7 @@ class RdfDataset {
     graphs = {'null': _defaultGraph};
   }
 
+  /// Constructs a RdfDataset from its N-quad string [nquads].
   RdfDataset.fromNQuad(String nquads) : _defaultGraph = RdfGraph() {
     graphs = {'null': _defaultGraph};
     var nquadList = nquads.split('\n');
@@ -409,6 +438,8 @@ class RdfDataset {
   RdfGraph get defaultGraph => _defaultGraph;
 
   @override
+
+  /// The N-quad string representing the dataset.
   String toString() {
     String graphString = '';
     graphs.forEach((key, value) {
@@ -423,6 +454,7 @@ class RdfDataset {
   }
 }
 
+/// A RdfGraph as defined within the [JSON-LD Processing API](https://www.w3.org/TR/json-ld11-api/#dom-rdfgraph).
 class RdfGraph {
   late List<RdfTriple> triple;
 
@@ -444,20 +476,20 @@ class RdfGraph {
   }
 }
 
+/// A RdfTriple as defined within the [JSON-LD Processing API](https://www.w3.org/TR/json-ld11-api/#dom-rdftriple).
 class RdfTriple {
-  //IRI or Blank node
+  /// IRI or Blank node
   late final String _subject;
-  //IRI
+
+  /// IRI
   late final String _predicate;
-  //IRI, Literal or Blank Node
+
+  /// IRI, Literal or Blank Node
   late final dynamic _object;
 
-  RdfTriple(this._subject, this._predicate, this._object) {
-    // if (_object is! String || _object is! RdfLiteral) {
-    //   throw FormatException('Object must be String or RdfLiteral');
-    // }
-  }
+  RdfTriple(this._subject, this._predicate, this._object);
 
+  /// Constructs a RdfTriple from its N-Quad string [nquad].
   RdfTriple.fromString(String nquad) {
     var parts = nquad.split(' ');
     if (parts.length < 3) throw Exception('no nquad string');
@@ -495,14 +527,16 @@ class RdfTriple {
   String get subject => _subject;
 
   @override
+
+  /// N-Quad string of a RdfTriple
   String toString() {
     return '${_subject.startsWith('_:') ? _subject : '<$_subject>'} <$_predicate> ${_object is RdfLiteral ? _object.toString() : (_object is String && _object.startsWith('_:') ? _object : '<$_object>')}';
   }
 }
 
+/// A RdfLiteral as defined within the [JSON-LD Processing API](https://www.w3.org/TR/json-ld11-api/#dom-rdfliteral).
 class RdfLiteral {
   late final String _value;
-  //if datatype is null, we assume xsd:string
   late final String? _datatype;
   late final String? _language;
 
@@ -510,6 +544,7 @@ class RdfLiteral {
       : _datatype = datatype,
         _language = language;
 
+  /// Constructs a RdfLiteral from its N-Quad string [literal].
   RdfLiteral.fromString(String literal) {
     if (literal.endsWith('\u0022')) {
       _value = literal.substring(1, literal.length - 1);
@@ -541,6 +576,8 @@ class RdfLiteral {
   String get value => _value;
 
   @override
+
+  /// N-Quad representation of a RdfLiteral
   String toString() {
     return '\u0022$_value\u0022${_datatype != null && _datatype != 'xsd:string' && _datatype != 'xsd:langString' ? '^^<$_datatype>' : ''}${_language != null ? '@$_language' : ''}';
   }

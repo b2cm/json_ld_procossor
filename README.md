@@ -8,13 +8,13 @@ But in general it works.
 ```Dart
 Map<String, dynamic> input = {}; //a valid Json-ld document
 //expansion
-var exapnded = await JsonLdProcessor.expand(input);
+var expanded = await JsonLdProcessor.expand(input);
 //flattening
 var flattened = await JsonLdProcessor.flatten(input);
 //toRdf
 var rdf = await JsonLdProcessor.toRdf(input);
 //normalize (URDNA2015) with additional options
-var exapnded = await JsonLdProcessor.normalize(input, options: JsonLdOptions(safeMode: true));
+var normalized = await JsonLdProcessor.normalize(input, options: JsonLdOptions(safeMode: true));
 ```
 
 ## SafeMode Option
