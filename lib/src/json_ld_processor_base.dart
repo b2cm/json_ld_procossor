@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart';
+import 'package:json_ld_processor/src/compact.dart';
 
 import 'context_processing.dart';
 import 'expansion.dart';
@@ -12,9 +13,77 @@ import 'to_rdf.dart';
 /// Json-LD Processor conform to [JsonLdProcessor-Interface](https://www.w3.org/TR/json-ld11-api/#the-jsonldprocessor-interface)
 class JsonLdProcessor {
   /// **Not Implemented yet:** Compact a json Document [input] using [context] and [options].
-  static FutureOr<Map<String, dynamic>> compact(dynamic input,
-      {dynamic context, JsonLdOptions? options}) {
-    throw UnimplementedError();
+  static FutureOr<String> compact(dynamic input, dynamic context,
+      {JsonLdOptions? options}) async {
+    options ??= JsonLdOptions();
+    // 1-4
+    var expandedInput = await expand(input,
+        options: JsonLdOptions(
+            base: options.base,
+            safeMode: options.safeMode,
+            documentLoader: options.documentLoader,
+            rdfDirection: options.rdfDirection,
+            frameExpansion: options.frameExpansion,
+            compactArrays: options.compactArrays,
+            compactToRelative: options.compactToRelative,
+            expandContext: options.expandContext,
+            extractAllScripts: false,
+            processingMode: options.processingMode,
+            produceGeneralized: options.produceGeneralized,
+            useNativeTypes: options.useNativeTypes,
+            useRdfType: options.useRdfType,
+            ordered: false));
+
+    //5
+    var contextBase =
+        input is RemoteDocument ? input.documentUrl : options.base;
+    //6
+    if (context is Map && context.containsKey('@context')) {
+      context = context['@context'];
+    }
+    //7
+    var activeContext = await processContext(
+        activeContext: Context(
+            terms: {},
+            baseIri:
+                (input is RemoteDocument ? input.documentUrl : options.base) ??
+                    Uri(),
+            originalBaseIri:
+                (input is RemoteDocument ? input.documentUrl : options.base) ??
+                    Uri(),
+            options: options),
+        localContext: context,
+        baseUrl: contextBase ?? Uri());
+
+    //8
+    activeContext.baseIri = options.base ?? Uri();
+    //9
+    var compactedOutput = await compactImpl(
+        activeContext, null, jsonDecode(expandedInput),
+        compactArrays: options.compactArrays, ordered: options.ordered);
+    //9.1
+    print(compactedOutput.runtimeType);
+    if (compactedOutput is List && compactedOutput.isEmpty) {
+      compactedOutput = <String, dynamic>{};
+    }
+    //9.2
+    else if (compactedOutput is List) {
+      compactedOutput = <String, dynamic>{
+        compactIri(activeContext, '@graph', vocab: true)!: compactedOutput
+      };
+    }
+    //9.3
+    if (context != null &&
+        context is Map &&
+        context.isNotEmpty &&
+        compactedOutput is Map) {
+      var newOutput = <dynamic, dynamic>{'@context': context};
+      newOutput.addAll(compactedOutput);
+      compactedOutput = newOutput;
+    }
+
+    //10
+    return jsonEncode(compactedOutput);
   }
 
   /// Expand a json Document [input] using [options].
@@ -551,17 +620,20 @@ class RdfLiteral {
       _datatype = null;
       _language = null;
     } else {
-      _value = literal.substring(1, literal.indexOf('\u0022', 2));
       if (literal.contains('^^')) {
+        _value = literal.substring(1, literal.indexOf('^^') - 1);
         _datatype = literal.substring(
             literal.indexOf('^^<') + 3,
-            literal.contains('@')
-                ? literal.indexOf('@') - 1
+            literal.contains('@', literal.indexOf('^^'))
+                ? literal.indexOf('@', literal.indexOf('^^')) - 1
                 : literal.length - 1);
       } else {
         _datatype = null;
       }
-      if (literal.contains('@')) {
+      if (literal.contains('@', literal.indexOf('^^') + 1)) {
+        if (!literal.contains('^^')) {
+          _value = literal.substring(1, literal.indexOf('@') - 1);
+        }
         _language = literal.substring(literal.indexOf('@') + 1);
       } else {
         _language = null;
@@ -579,6 +651,6 @@ class RdfLiteral {
 
   /// N-Quad representation of a RdfLiteral
   String toString() {
-    return '\u0022$_value\u0022${_datatype != null && _datatype != 'xsd:string' && _datatype != 'xsd:langString' ? '^^<$_datatype>' : ''}${_language != null ? '@$_language' : ''}';
+    return '${jsonEncode(_value)}${_datatype != null && _datatype != 'xsd:string' && _datatype != 'xsd:langString' ? '^^<$_datatype>' : ''}${_language != null ? '@$_language' : ''}';
   }
 }

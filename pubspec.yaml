@@ -1,6 +1,6 @@
 name: json_ld_processor
 description: JSON-LD Processor according to JSON-LD Processing API 1.1 with support for URDNA2015 normalization.
-version: 1.0.0
+version: 1.0.1
 repository: https://github.com/b2cm/json_ld_procossor
 
 environment:

@@ -21,7 +21,8 @@ const List<String> keywords = [
   '@type',
   '@value',
   '@version',
-  '@vocab'
+  '@vocab',
+  '@preseve'
 ];
 
 const List<String> genDelims = [':', '/', '?', '#', '[', ']', '@'];

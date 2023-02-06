@@ -250,7 +250,7 @@ Future<Context> processContext(
       }
       try {
         resolved = await activeContext.options.documentLoader.call(
-            import,
+            Uri.parse(import),
             LoadDocumentOptions(
                 profile: ' http://www.w3.org/ns/json-ld#context',
                 requestProfile: ['http://www.w3.org/ns/json-ld#context']));
@@ -869,4 +869,221 @@ Future<void> createTermDefinition(
   activeContext.terms[term] = definition;
   defined[term] = true;
   return;
+}
+
+Map<String, dynamic> createInverseContext(Context activeContext) {
+  // 1
+  Map<String, dynamic> result = {};
+
+  // 2
+  var defaultLanguage = activeContext.defaultLanguage?.toLowerCase() ?? '@none';
+
+  // 3
+  var terms = activeContext.terms.keys.toList();
+  terms.sort(
+    (a, b) {
+      if (a.length > b.length) {
+        return 1;
+      } else if (a.length < b.length) {
+        return -1;
+      } else {
+        return a.compareTo(b);
+      }
+    },
+  );
+
+  for (var term in terms) {
+    var termDefinition = activeContext.terms[term];
+
+    // 3.1
+    if (termDefinition == null) continue;
+
+    // 3.2
+    var container = '@none';
+    if (termDefinition.containerMapping != null &&
+        termDefinition.containerMapping!.isNotEmpty) {
+      termDefinition.containerMapping!.sort();
+      container = termDefinition.containerMapping!.join();
+    }
+
+    // 3.3
+    var vari = termDefinition.iriMapping;
+
+    // 3.4
+    if (!result.containsKey(vari)) {
+      result[vari] = {};
+    }
+
+    // 3.5
+    var containerMap = result[vari];
+
+    // 3.6
+    if (containerMap is Map && !containerMap.containsKey(container)) {
+      containerMap[container] = <String, Map>{
+        '@language': {},
+        '@type': {},
+        '@any': {'@none': term}
+      };
+    }
+
+    // 3.7
+    var typeLanguageMap = containerMap[container];
+
+    // 3.8
+    var typeMap = typeLanguageMap['@type'] as Map;
+    // 3.9
+    var languageMap = typeLanguageMap['@language'] as Map;
+
+    // 3.10
+    if (termDefinition.reverseProperty) {
+      // 3.10.1
+      if (!typeMap.containsKey('@reverse')) {
+        typeMap['@reverse'] = term;
+      }
+    }
+    // 3.11
+    else if (termDefinition.typeMapping != null &&
+        termDefinition.typeMapping == '@none') {
+      // 3.11.1
+      if (!languageMap.containsKey('@any')) {
+        languageMap['@any'] = term;
+      }
+      // 3.11.2
+      if (!typeMap.containsKey('@any')) {
+        typeMap['@any'] = term;
+      }
+    }
+    // 3.12
+    else if (termDefinition.typeMapping != null) {
+      if (!typeMap.containsKey(termDefinition.typeMapping)) {
+        typeMap[termDefinition.typeMapping] = term;
+      }
+    }
+    // 3.13
+    else if (termDefinition.languageMapping != null &&
+        termDefinition.directionMapping != null) {
+      // 3.13.1
+      String langDir;
+      // 13.2.2
+      if (termDefinition.languageMapping != '' &&
+          termDefinition.directionMapping != '') {
+        langDir =
+            '${termDefinition.languageMapping!.toLowerCase()}_${termDefinition.directionMapping!.toLowerCase()}';
+      }
+      // 3.13.3
+      else if (termDefinition.languageMapping != '') {
+        langDir = termDefinition.languageMapping!.toLowerCase();
+      }
+      // 3.13.4
+      else if (termDefinition.directionMapping != '') {
+        langDir = '_${termDefinition.directionMapping!.toLowerCase()}';
+      }
+      // 3.13.5
+      else {
+        langDir = '@null';
+      }
+      // 3.13.6
+      if (!languageMap.containsKey(langDir)) {
+        languageMap[langDir] = term;
+      }
+    }
+    // 3.14
+    else if (termDefinition.languageMapping != null) {
+      var language = termDefinition.languageMapping == ''
+          ? '@null'
+          : termDefinition.languageMapping!.toLowerCase();
+      if (!languageMap.containsKey(language)) {
+        languageMap[language] = term;
+      }
+    }
+    // 3.15
+    else if (termDefinition.directionMapping != null) {
+      var direction = termDefinition.directionMapping == ''
+          ? '@none'
+          : '_${termDefinition.directionMapping!.toLowerCase()}';
+      if (!languageMap.containsKey(direction)) {
+        languageMap[direction] = term;
+      }
+    }
+    // 3.16
+    else if (activeContext.defaultBaseDirection != null) {
+      // 3.16.1
+      var langDir = '${defaultLanguage}_${activeContext.defaultBaseDirection}'
+          .toLowerCase();
+      // 3.16.2
+      if (!languageMap.containsKey(langDir)) {
+        languageMap[langDir] = term;
+      }
+      // 3.16.3
+      if (!languageMap.containsKey('@none')) {
+        languageMap['@none'] = term;
+      }
+      // 3.16.4
+      if (!typeMap.containsKey('@none')) {
+        typeMap['@none'] = term;
+      }
+    }
+    // 3.17
+    else {
+      // 3.17.1
+      if (!languageMap.containsKey(defaultLanguage.toLowerCase())) {
+        languageMap[defaultLanguage.toLowerCase()] = term;
+      }
+      // 3.17.2
+      if (!languageMap.containsKey('@none')) {
+        languageMap['@none'] = term;
+      }
+      // 3.17.3
+      if (!typeMap.containsKey('@none')) {
+        typeMap['@none'] = term;
+      }
+    }
+  }
+
+  // 4
+  return result;
+}
+
+String? selectTerm(
+    Context activeContext,
+    String variable,
+    List<String> containers,
+    String typeLanguage,
+    List<String> preferredValues) {
+  // 1
+  activeContext.inverseContext ??= createInverseContext(activeContext);
+
+  // 2
+  var inverseContext = activeContext.inverseContext!;
+
+  // 3
+  Map<dynamic, dynamic> containerMap = inverseContext[variable];
+
+  // 4
+  for (var container in containers) {
+    // 4.1
+    if (!containerMap.containsKey(container)) {
+      continue;
+    }
+
+    // 4.2
+    Map<dynamic, dynamic> typeLanguageMap = containerMap[container];
+
+    // 4.3
+    Map<dynamic, dynamic> valueMap = typeLanguageMap[typeLanguage];
+
+    // 4.4
+    for (var item in preferredValues) {
+      // 4.4.1
+      if (!valueMap.containsKey(item)) {
+        continue;
+      }
+      // 4.4.2
+      else {
+        return valueMap[item] as String;
+      }
+    }
+  }
+  // 5
+  return null;
 }

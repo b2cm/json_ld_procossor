@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:json_ld_processor/src/context_processing.dart';
 
 void addValue(
@@ -256,4 +258,143 @@ bool compareList(List<String>? v1, List<String>? v2) {
   }
 
   return true;
+}
+
+bool isGraphObject(dynamic object) {
+  if (object is! Map || !object.containsKey('@graph')) {
+    return false;
+  }
+
+  Set allowed = {'@graph', '@id', '@index', '@context'};
+  return allowed.containsAll(object.keys);
+}
+
+bool isSimpleGraphObject(dynamic object) {
+  return isGraphObject(object) && !object.containsKey('@id');
+}
+
+// Dart port of Java Titanium impl
+String toRelativeUri(Uri base, String uri) {
+  var asUri = Uri.parse(uri);
+  if (base == Uri() || !base.isAbsolute || !asUri.isAbsolute) return uri;
+  if (base.scheme != asUri.scheme) return uri;
+  if (base.authority != asUri.authority) return uri;
+
+  var uriPath = Path.from(asUri.path);
+  var basePath = Path.from(base.path);
+
+  var path = uriPath.relativize(basePath);
+
+  if (path.isNotEmpty()) {
+    return Uri(
+            path: path.toString(), query: asUri.query, fragment: asUri.fragment)
+        .toString();
+  }
+
+  if (base.query != asUri.query) {
+    return Uri(query: asUri.query, fragment: asUri.fragment).toString();
+  }
+
+  if (base.fragment != asUri.fragment) {
+    return Uri(fragment: asUri.fragment).toString();
+  }
+
+  return uriPath.getLeaf() ?? './';
+}
+
+// Dart port of Java Titanium impl
+class Path {
+  final List<String> segments;
+  final String? last;
+  final bool relative;
+
+  Path(this.segments, this.last, this.relative);
+
+  factory Path.from(String path) {
+    bool relative = !path.startsWith('/');
+    var segments = (relative ? path : path.substring(1)).split('/');
+    var last = (path.length > 1 && path.endsWith('/'))
+        ? null
+        : segments.removeAt(segments.length - 1);
+    return Path(segments, last, relative);
+  }
+
+  Path relativize(Path base) {
+    if (segments.isEmpty && base.segments.isEmpty) {
+      if (last == base.last) {
+        return Path([], null, !base.relative);
+      } else {
+        return Path([], last, !base.relative && !relative);
+      }
+    }
+
+    if (base.segments.isEmpty && base.last == null) {
+      return Path(segments, last, !base.relative && !relative);
+    }
+
+    var leftIndex = 0;
+
+    for (;
+        leftIndex < min(segments.length, base.segments.length);
+        leftIndex++) {
+      if (segments[leftIndex] != base.segments[leftIndex]) {
+        break;
+      }
+    }
+
+    if (leftIndex == segments.length && leftIndex == base.segments.length) {
+      if (last == base.last) {
+        return Path([], null, true);
+      } else {
+        return Path([], last, segments.isNotEmpty);
+      }
+    }
+
+    if (leftIndex <= base.segments.length) {
+      if (segments.length - leftIndex == 1 &&
+          segments[leftIndex] == base.last) {
+        return Path(['.'], last, true);
+      }
+      return Path(segments.sublist(leftIndex), last, true);
+    }
+
+    var rightIndex = 0;
+    var diff = <String>[];
+
+    for (;
+        rightIndex < min(segments.length, base.segments.length) - leftIndex;
+        rightIndex++) {
+      if (segments[segments.length - rightIndex - 1] !=
+          (base.segments[base.segments.length - rightIndex - 1])) {
+        break;
+      }
+      diff.add("..");
+    }
+    for (int i = 0; i < (base.segments.length - leftIndex - rightIndex); i++) {
+      diff.add("..");
+    }
+
+    for (int i = 0; i < (segments.length - leftIndex - rightIndex); i++) {
+      diff.add(segments[i + leftIndex]);
+    }
+
+    return Path(diff, last == base.last ? null : last, true);
+  }
+
+  bool isEmpty() {
+    return segments.isEmpty && last == null && !relative;
+  }
+
+  bool isNotEmpty() {
+    return segments.isNotEmpty || last != null || !relative;
+  }
+
+  String? getLeaf() {
+    return last;
+  }
+
+  @override
+  String toString() {
+    return '${relative ? '' : '/'}${segments.join('/')}${segments.isEmpty ? '' : '/'}${last ?? ''}';
+  }
 }

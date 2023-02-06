@@ -26,14 +26,14 @@ I recommend setting it to true, if you normalize a json-ld document before signi
 **Note:** The idea introducing this option is borrowed from tha [JavaScript implementation](https://github.com/digitalbazaar/jsonld.js/) which powers the [JSON-LD Playground](https://json-ld.org/playground/) as well. This option is not part of the standard yet.
 
 ## Implementation Status and Test Coverage
-| Algorithm | Tests passed | Tests failed | Notes |
-|------|------|----------|-------|
-| expand | 363 | 8 | |
-| flatten | 55 | 1 | one failed, because of missing compaction algorithm
-| compact |0 | 0 | not implemented yet|
-| fromRdf | 0 |0 | not implemented yet |
-| toRdf | 397 | 39 | <ul><li> respect rdfDirection option is not implemented yet</li> <li> to check if the resulting list of n-quads is correct, I only use string comparison and no test to graph isomorphism. Therefore 12 tests are stated falsely as not passed if you run them on your own</ul></li> |
-| normalize | 62 | 1 | |
+| Algorithm | Tests passed | Tests failed | Notes                                               |
+|------|--------------|--------------|-----------------------------------------------------|
+| expand | 363          | 8            |                                                     |
+| flatten | 55           | 1            | one failed, because of missing compaction algorithm 
+| compact | 94           | 149          | needs bugfixing                                     |
+| fromRdf | 0            | 0            | not implemented yet                                 |
+| toRdf | 406          | 30           | rdfDirection option is not implemented yet          |
+| normalize | 62           | 1            |                                                     |
 
 ### Run tests
 The test data is taken from [here](https://github.com/w3c/json-ld-api/) for json-ld api test and [here](https://github.com/w3c-ccg/rdf-dataset-canonicalization) for normalization tests.
@@ -41,5 +41,5 @@ Therefore you need to clone these two repos next to this, if you would like to r
 
 ## Future Plans
 - remove bugs
-- implement Compaction and toRdf
+- implement Compaction and fromRdf
 - support [framing](https://www.w3.org/TR/json-ld11-framing/)

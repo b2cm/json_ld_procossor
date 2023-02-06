@@ -687,8 +687,7 @@ Future<void> expandDocStep1314(
         for (var item in indexValue) {
           //13.8.3.7.1
           if (item is Map) {
-            if (containerMapping.contains('@graph') &&
-                !item.containsKey('@graph')) {
+            if (containerMapping.contains('@graph') && !isGraphObject(item)) {
               item = {
                 '@graph': item is List ? item : [item]
               };

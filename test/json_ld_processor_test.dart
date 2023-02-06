@@ -66,6 +66,70 @@ void main() {
     }
   });
 
+  group('compact', () {
+    var manifestFile = File('../json-ld-api/tests/compact-manifest.jsonld');
+    var manifest = jsonDecode(manifestFile.readAsStringSync());
+    var sequence = manifest['sequence'] as List;
+    for (var testData in sequence) {
+      var name = testData['name'];
+      var context = testData['context'];
+      var id = testData['@id'];
+      var input = testData['input']!;
+      var options = testData['option'];
+      var base = options?['base'];
+      var expandContextPath = options?['expandContext'];
+      var processingMode = options?['processingMode'];
+      var specVersion = options?['specVersion'];
+      if (specVersion != null && specVersion == 'json-ld-1.0') continue;
+      List<String> type = testData['@type']!.cast<String>();
+      bool negative = false;
+      if (type.first.contains('Negative')) {
+        negative = true;
+      }
+
+      test('${type.first}: $name, id: $id', () async {
+        var inputFile = File('../json-ld-api/tests/$input');
+        var jsonIn = jsonDecode(inputFile.readAsStringSync());
+        var contextFile = File('../json-ld-api/tests/$context');
+        var contextJson = jsonDecode(contextFile.readAsStringSync());
+        if (negative) {
+          var errorCode = testData['expectErrorCode'];
+          expect(
+              () => JsonLdProcessor.compact(jsonIn, contextJson,
+                  options: JsonLdOptions(
+                      processingMode:
+                          processingMode ?? specVersion ?? 'json-ld-1.1',
+                      base: Uri.parse(base ??
+                          'https://w3c.github.io/json-ld-api/tests/$input'))),
+              throwsA(predicate(
+                  (e) => e is JsonLdError && e.message == errorCode)));
+        } else {
+          var output = testData['expect'];
+          dynamic expandContext;
+          if (expandContextPath != null) {
+            var expCFile = File('../json-ld-api/tests/$expandContextPath');
+            expandContext = jsonDecode(expCFile.readAsStringSync());
+          }
+          var expanded = await JsonLdProcessor.compact(jsonIn, contextJson,
+              options: JsonLdOptions(
+                  processingMode:
+                      processingMode ?? specVersion ?? 'json-ld-1.1',
+                  expandContext: expandContext,
+                  base: Uri.parse(base ??
+                      'https://w3c.github.io/json-ld-api/tests/$input')));
+          var expandedJson = jsonDecode(expanded);
+          print('expanded');
+          print(expandedJson);
+          var expected = File('../json-ld-api/tests/$output');
+          var expectedJson = jsonDecode(expected.readAsStringSync());
+          print('\nexpected:');
+          print(expectedJson);
+          expect(compareJsonLd(expectedJson, expandedJson), true);
+        }
+      });
+    }
+  });
+
   group('flatten', () {
     var manifestFile = File('../json-ld-api/tests/flatten-manifest.jsonld');
     var manifest = jsonDecode(manifestFile.readAsStringSync());
@@ -170,14 +234,18 @@ void main() {
                   base: Uri.parse(base ??
                       'https://w3c.github.io/json-ld-api/tests/$input')));
           print('expanded');
-          print(expanded);
+
+          var expandedNormal = await JsonLdProcessor.normalize(expanded);
+          print(expandedNormal);
           var expected = File('../json-ld-api/tests/$output');
           var expectedJson = expected.readAsStringSync();
+          var expectedNormal = await JsonLdProcessor.normalize(
+              RdfDataset.fromNQuad(expectedJson));
           print('\nexpected:');
-          print(expectedJson);
+          print(expectedNormal);
           expect(
               compareRdfString(
-                  expectedJson.split('\n'), expanded.toString().split('\n')),
+                  expectedNormal.split('\n'), expandedNormal.split('\n')),
               true);
         }
       });

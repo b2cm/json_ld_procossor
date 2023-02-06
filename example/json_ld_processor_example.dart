@@ -1,6 +1,28 @@
 import 'package:json_ld_processor/json_ld_processor.dart';
 
 void main() async {
+  var jsonIn = {
+    "@id": "http://example.org/id1",
+    "@type": ["http://example.org/Type1", "http://example.org/Type2"],
+    "http://example.org/term1": {
+      "@value": "v1",
+      "@type": "http://example.org/datatype"
+    },
+    "http://example.org/term2": {"@id": "http://example.org/id2"}
+  };
+  var context = {
+    "@context": {
+      "ex": "http://example.org/",
+      "term1": {"@id": "ex:term1", "@type": "ex:datatype"},
+      "term2": {"@id": "ex:term2", "@type": "@id"}
+    }
+  };
+
+  print(await JsonLdProcessor.compact(jsonIn, context));
+
+  return;
+  print(RdfDataset.fromNQuad(
+      '_:c14n0 <ex:foo> "{\"@context\":\"ex:not:a:context\",\"test\":1}"^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#JSON> .'));
   var exampleData = {
     "@context": [
       "https://www.w3.org/2018/credentials/v1",
