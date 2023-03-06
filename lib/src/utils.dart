@@ -398,3 +398,118 @@ class Path {
     return '${relative ? '' : '/'}${segments.join('/')}${segments.isEmpty ? '' : '/'}${last ?? ''}';
   }
 }
+
+Map<String, dynamic> sortJson(Map<String, dynamic> json) {
+  var sorted = <String, dynamic>{};
+  var keys = json.keys.toList();
+  keys.sort();
+  for (var k in keys) {
+    var value = json[k];
+    if (value is Map) {
+      sorted[k] = sortJson(value as Map<String, dynamic>);
+    } else if (value is List) {
+      var sortedList = [];
+      for (var v in value) {
+        if (v is Map) {
+          sortedList.add(sortJson(v as Map<String, dynamic>));
+        } else {
+          sortedList.add(v);
+        }
+      }
+      sorted[k] = sortedList;
+    } else {
+      sorted[k] = value;
+    }
+  }
+
+  return sorted;
+}
+
+String escapeString(String value) {
+  String escaped = '';
+  var units = value.codeUnits;
+
+  for (var u in units) {
+    if (u == 0x9) {
+      escaped += r'\t';
+    } else if (u == 0x8) {
+      escaped += r'\b';
+    } else if (u == 0xa) {
+      escaped += r'\n';
+    } else if (u == 0xd) {
+      escaped += r'\r';
+    } else if (u == 0xc) {
+      escaped += r'\f';
+    } else if (u == '"'.codeUnitAt(0)) {
+      escaped += r'\"';
+    } else if (u == r'\'.codeUnitAt(0)) {
+      escaped += r'\\';
+    } else if (u >= 0x0 && u <= 0x1f || u == 0x7f) {
+      escaped += '\\u${u.toRadixString(16).padRight(4, '0')}';
+    } else {
+      escaped += String.fromCharCode(u);
+    }
+  }
+  return escaped;
+}
+
+String canonicalizeJsonObject(Map object, String base) {
+  bool next = false;
+  base += '{';
+
+  var keys = object.keys.toList();
+  keys.sort();
+  for (var k in keys) {
+    if (next) {
+      base += ',';
+    }
+
+    base += r'\"';
+    base += escapeString(k);
+    base += r'\":';
+
+    var value = object[k];
+    base = canonicalizeJsonData(value, base);
+
+    next = true;
+  }
+  base += r'}';
+  return base;
+}
+
+String canonicalizeJsonArray(List<dynamic> array, String base) {
+  bool next = false;
+  base += r'[';
+
+  for (var item in array) {
+    if (next) {
+      base += ',';
+    }
+
+    base = canonicalizeJsonData(item, base);
+
+    next = true;
+  }
+
+  base += r']';
+  return base;
+}
+
+String canonicalizeJsonData(dynamic data, String base) {
+  if (data == null) {
+    base += 'null';
+  } else if (isScalar(data)) {
+    if (data is String) {
+      base += r'\"';
+      base += data;
+      base += r'\"';
+    } else {
+      base += data.toString();
+    }
+  } else if (data is List) {
+    base = canonicalizeJsonArray(data, base);
+  } else if (data is Map) {
+    base = canonicalizeJsonObject(data, base);
+  }
+  return base;
+}

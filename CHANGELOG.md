@@ -1,3 +1,6 @@
+## 1.0.2
+- bugfixes
+
 ## 1.0.1
 - Start implementing compaction
 - bugfixes

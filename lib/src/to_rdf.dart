@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:json_ld_processor/src/constants.dart';
 import 'package:json_ld_processor/src/flatten.dart';
 import 'package:json_ld_processor/src/json_ld_processor_base.dart';
@@ -119,8 +117,12 @@ dynamic objectToRdf(Map<String, dynamic> item, List<RdfTriple> listTriples,
   }
   //8
   if (datatype == '@json') {
-    value = jsonEncode(jsonEncode(value));
-    value = value.substring(1, value.length - 1);
+    // if (value is Map<String, dynamic>) {
+    //   value = sortJson(value);
+    // }
+    // value = jsonEncode(jsonEncode(value));
+    // value = value.substring(1, value.length - 1);
+    value = canonicalizeJsonData(value, '');
     datatype = RdfType.json.value;
   }
   //9

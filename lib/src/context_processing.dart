@@ -249,13 +249,15 @@ Future<Context> processContext(
         import = baseUrl.resolve(import);
       }
       try {
+        print(import);
         resolved = await activeContext.options.documentLoader.call(
-            Uri.parse(import),
+            import is String ? Uri.parse(import) : import,
             LoadDocumentOptions(
-                profile: ' http://www.w3.org/ns/json-ld#context',
+                profile: 'http://www.w3.org/ns/json-ld#context',
                 requestProfile: ['http://www.w3.org/ns/json-ld#context']));
       } catch (e) {
         //5.6.5
+        print(e);
         throw JsonLdError('loading remote context failed');
       }
       //5.6.6

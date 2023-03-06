@@ -651,6 +651,8 @@ class RdfLiteral {
 
   /// N-Quad representation of a RdfLiteral
   String toString() {
-    return '${jsonEncode(_value)}${_datatype != null && _datatype != 'xsd:string' && _datatype != 'xsd:langString' ? '^^<$_datatype>' : ''}${_language != null ? '@$_language' : ''}';
+    var s =
+        '${_datatype == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#JSON' ? '\u0022$_value\u0022' : jsonEncode(_value)}${_datatype != null && _datatype != 'xsd:string' && _datatype != 'xsd:langString' ? '^^<$_datatype>' : ''}${_language != null ? '@$_language' : ''}';
+    return s;
   }
 }

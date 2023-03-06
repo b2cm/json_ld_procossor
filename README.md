@@ -23,7 +23,7 @@ One reasons for this can be found in the expansion algorithm. If a property of t
 But if it is true, the exception is thrown. If not, the property is dropped as standardized.
 I recommend setting it to true, if you normalize a json-ld document before signing.
 
-**Note:** The idea introducing this option is borrowed from tha [JavaScript implementation](https://github.com/digitalbazaar/jsonld.js/) which powers the [JSON-LD Playground](https://json-ld.org/playground/) as well. This option is not part of the standard yet.
+**Note:** The idea introducing this option is borrowed from the [JavaScript implementation](https://github.com/digitalbazaar/jsonld.js/) which powers the [JSON-LD Playground](https://json-ld.org/playground/) as well. This option is not part of the standard yet.
 
 ## Implementation Status and Test Coverage
 | Algorithm | Tests passed | Tests failed | Notes                                               |
