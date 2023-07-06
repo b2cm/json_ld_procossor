@@ -1,3 +1,6 @@
+## 1.0.3
+- dependency upgrades
+
 ## 1.0.2
 - bugfixes
 
