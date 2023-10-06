@@ -390,8 +390,10 @@ class JsonLdOptions {
 /// Returns a RemoteDocument.
 Future<RemoteDocument> loadDocument(
     Uri url, LoadDocumentOptions? options) async {
+  // replace ipfs:// scheme with default IPFS gateway
+  var http_url = url.isScheme('ipfs') ? Uri.parse('https://ipfs.io/ipfs/' + url.host) : url;
   var response =
-      await get(url, headers: {'content-Type': 'application/ld+json'});
+      await get(http_url, headers: {'content-Type': 'application/ld+json'});
 
   if (response.statusCode == 301 ||
       response.statusCode == 302 ||
