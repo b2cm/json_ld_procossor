@@ -113,9 +113,9 @@ class JsonLdProcessor {
       //dereference URI
       throw UnimplementedError();
     } else if (input is Map<String, dynamic>) {
-      parsableDoc = input;
+      parsableDoc = jsonDecode(jsonEncode(input));
     } else if (input is List) {
-      parsableDoc = input;
+      parsableDoc = jsonDecode(jsonEncode(input));
     } else {
       throw Exception();
     }

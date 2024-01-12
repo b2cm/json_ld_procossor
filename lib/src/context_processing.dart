@@ -44,8 +44,7 @@ class Context {
         inverseContext:
             inverseContext == null ? null : Map.from(inverseContext!),
         vocabularyMapping: vocabularyMapping,
-        previousContext:
-            previousContext == null ? null : previousContext!.copyOf());
+        previousContext: previousContext = previousContext?.copyOf());
   }
 
   @override

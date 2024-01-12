@@ -275,7 +275,7 @@ HashNDegreeQuadsResult hashNDegreeQuads(CanonicalizationState canonState,
       }
       //5.4.6
       if (chosenPath.isEmpty || chosenPath.compareTo(path) > 0) {
-        chosenPath = '' + path;
+        chosenPath = path;
         chosenIssuer = issuerCopy;
       }
     }

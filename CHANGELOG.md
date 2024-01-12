@@ -1,3 +1,6 @@
+## 1.0.4
+- bugfix: ordering in type array is not changed anymore 
+
 ## 1.0.3
 - dependency upgrades
 

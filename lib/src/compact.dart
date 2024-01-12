@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:json_ld_processor/json_ld_processor.dart';
 import 'package:json_ld_processor/src/context_processing.dart';
 import 'package:json_ld_processor/src/expansion.dart';
@@ -559,7 +561,7 @@ dynamic compactImpl(
 
 dynamic compactValue(Context activeContext, dynamic activeProperty, Map value) {
   // 1
-  dynamic result = Map.from(value);
+  dynamic result = jsonDecode(jsonEncode(value));
 
   // 2
   activeContext.inverseContext ??= createInverseContext(activeContext);
